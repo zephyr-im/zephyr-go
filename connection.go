@@ -16,7 +16,6 @@ package zephyr
 
 import (
 	"errors"
-	"log"
 	"net"
 	"sync"
 	"time"
@@ -81,9 +80,8 @@ func NewConnection(
 	conn net.PacketConn,
 	server ServerConfig,
 	cred *krb5.Credential,
-	logger *log.Logger,
 ) (*Connection, error) {
-	return NewConnectionFull(conn, server, cred, logger, SystemClock)
+	return NewConnectionFull(conn, server, cred, SystemClock)
 }
 
 // NewConnectionFull does the same as NewConnection but takes an
@@ -92,7 +90,6 @@ func NewConnectionFull(
 	conn net.PacketConn,
 	server ServerConfig,
 	cred *krb5.Credential,
-	logger *log.Logger,
 	clock Clock,
 ) (*Connection, error) {
 	c := new(Connection)
@@ -104,7 +101,7 @@ func NewConnectionFull(
 	if c.cred != nil {
 		key = c.cred.KeyBlock
 	}
-	c.allNotices = ReadNoticesFromServer(conn, key, logger)
+	c.allNotices = ReadNoticesFromServer(conn, key)
 	c.notices = make(chan NoticeReaderResult)
 	c.ackTable = make(map[UID]chan NoticeReaderResult)
 

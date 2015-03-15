@@ -38,7 +38,6 @@ type MessageReaderResult struct {
 // notices by UID. This API should be used by most zephyr clients.
 type Session struct {
 	conn     *Connection
-	logger   *log.Logger
 	clock    Clock
 	messages chan MessageReaderResult
 }
@@ -49,9 +48,8 @@ func NewSession(
 	conn net.PacketConn,
 	server ServerConfig,
 	cred *krb5.Credential,
-	logger *log.Logger,
 ) (*Session, error) {
-	return NewSessionFull(conn, server, cred, logger, SystemClock)
+	return NewSessionFull(conn, server, cred, SystemClock)
 }
 
 // NewSessionFull creates a new Session attached to a given connection
@@ -61,15 +59,14 @@ func NewSessionFull(
 	conn net.PacketConn,
 	server ServerConfig,
 	cred *krb5.Credential,
-	logger *log.Logger,
 	clock Clock,
 ) (*Session, error) {
-	zconn, err := NewConnectionFull(conn, server, cred, logger, clock)
+	zconn, err := NewConnectionFull(conn, server, cred, clock)
 	if err != nil {
 		return nil, err
 	}
 
-	s := &Session{zconn, logger, clock, make(chan MessageReaderResult)}
+	s := &Session{zconn, clock, make(chan MessageReaderResult)}
 	go s.noticeLoop()
 	return s, nil
 }
@@ -99,13 +96,13 @@ func (s *Session) noticeLoop() {
 			var err error
 			msg, err = NewReassemblerFromMultipartField(r.Notice)
 			if err != nil {
-				logPrintf(s.logger, "Error parsing multipart: %v", err)
+				log.Printf("Error parsing multipart: %v", err)
 				continue
 			}
 			reassemble.Put(r.Notice.MultiUID, msg)
 		}
 		if err := msg.AddNotice(r.Notice, r.AuthStatus); err != nil {
-			logPrintf(s.logger, "Error reassembling notice: %v", err)
+			log.Printf("Error reassembling notice: %v", err)
 			continue
 		}
 		if msg.Done() {

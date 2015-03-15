@@ -27,7 +27,6 @@
 package zephyr
 
 import (
-	"log"
 	"net"
 
 	"github.com/zephyr-im/hesiod-go"
@@ -60,7 +59,7 @@ func DialSystemDefault() (*Session, error) {
 	if err != nil {
 		return nil, err
 	}
-	return Dial(hesiod.NewHesiod(), cred, nil)
+	return Dial(hesiod.NewHesiod(), cred)
 }
 
 // Dial creates a new Session using the given Hesiod object and
@@ -68,7 +67,6 @@ func DialSystemDefault() (*Session, error) {
 func Dial(
 	hesiod *hesiod.Hesiod,
 	cred *krb5.Credential,
-	logger *log.Logger,
 ) (*Session, error) {
 	// Create a server config from Hesiod.
 	server, err := NewServerFromHesiod(hesiod)
@@ -82,5 +80,5 @@ func Dial(
 		return nil, err
 	}
 
-	return NewSession(udp, server, cred, logger)
+	return NewSession(udp, server, cred)
 }

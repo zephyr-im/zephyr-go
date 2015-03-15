@@ -28,12 +28,10 @@ import (
 )
 
 func ackAndDumpNotices(t *testing.T, conn net.PacketConn, auth AuthStatus, sink chan<- *Notice) {
-	l, lc := expectNoLogs(t)
-	defer lc.Close()
 	ctx, keytab := makeServerContextAndKeyTab(t)
 	defer ctx.Free()
 	defer keytab.Close()
-	for r := range ReadRawNotices(conn, l) {
+	for r := range ReadRawNotices(conn) {
 		authStatus, _, err := r.RawNotice.CheckAuthFromClient(
 			ctx, krb5test.Service(), keytab)
 		if err != nil {
@@ -58,9 +56,7 @@ func ackAndDumpNotices(t *testing.T, conn net.PacketConn, auth AuthStatus, sink 
 }
 
 func nackNotices(t *testing.T, conn net.PacketConn) {
-	l, lc := expectNoLogs(t)
-	defer lc.Close()
-	for r := range ReadRawNotices(conn, l) {
+	for r := range ReadRawNotices(conn) {
 		notice, err := DecodeRawNotice(r.RawNotice)
 		if err != nil {
 			t.Fatalf("DecodeRawNotice failed: %v", err)
@@ -134,9 +130,6 @@ func TestSendSubscribe(t *testing.T) {
 	tests = append(tests, long)
 
 	for i, subs := range tests {
-		l, lc := expectNoLogs(t)
-		defer lc.Close()
-
 		ctx, err := krb5.NewContext()
 		if err != nil {
 			t.Fatal(err)
@@ -146,7 +139,7 @@ func TestSendSubscribe(t *testing.T) {
 		clock := zephyrtest.NewMockClock()
 		client, server := mockNetwork1()
 		conn, err := NewConnectionFull(client, serverConfig,
-			krb5test.Credential(), l, clock)
+			krb5test.Credential(), clock)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -189,8 +182,6 @@ func TestSendSubscribe(t *testing.T) {
 }
 
 func TestSendSubscribeTooLong(t *testing.T) {
-	l, lc := expectNoLogs(t)
-	defer lc.Close()
 	ctx, err := krb5.NewContext()
 	if err != nil {
 		t.Fatal(err)
@@ -201,7 +192,7 @@ func TestSendSubscribeTooLong(t *testing.T) {
 	client, server := mockNetwork1()
 	defer server.Close()
 	conn, err := NewConnectionFull(client, serverConfig,
-		krb5test.Credential(), l, clock)
+		krb5test.Credential(), clock)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -224,8 +215,6 @@ func TestSendSubscribeNack(t *testing.T) {
 		{"davidben@ATHENA.MIT.EDU", "message", "personal"},
 	}
 
-	l, lc := expectNoLogs(t)
-	defer lc.Close()
 	ctx, err := krb5.NewContext()
 	if err != nil {
 		t.Fatal(err)
@@ -236,7 +225,7 @@ func TestSendSubscribeNack(t *testing.T) {
 	client, server := mockNetwork1()
 	defer server.Close()
 	conn, err := NewConnectionFull(client, serverConfig,
-		krb5test.Credential(), l, clock)
+		krb5test.Credential(), clock)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -263,8 +252,6 @@ func TestSendSubscribeSendError(t *testing.T) {
 		{"davidben@ATHENA.MIT.EDU", "message", "personal"},
 	}
 
-	l, lc := expectNoLogs(t)
-	defer lc.Close()
 	ctx, err := krb5.NewContext()
 	if err != nil {
 		t.Fatal(err)
@@ -276,7 +263,7 @@ func TestSendSubscribeSendError(t *testing.T) {
 	close(readChan)
 	mock := zephyrtest.NewMockPacketConn(clientAddr, readChan)
 	conn, err := NewConnectionFull(mock, serverConfig,
-		krb5test.Credential(), l, clock)
+		krb5test.Credential(), clock)
 	if err != nil {
 		t.Fatal(err)
 	}

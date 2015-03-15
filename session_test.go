@@ -38,13 +38,11 @@ func mockSendingServer(
 	notices []noticeWithAuth,
 ) {
 	// Set some stuff up.
-	l, lc := expectNoLogs(t)
-	defer lc.Close()
 	ctx, keytab := makeServerContextAndKeyTab(t)
 	defer ctx.Free()
 	defer keytab.Close()
 
-	rawNotices := ReadRawNotices(conn, l)
+	rawNotices := ReadRawNotices(conn)
 	for _, n := range notices {
 		// Assemble the notice to send out.
 		pkt, err := n.notice.EncodePacketForClient(ctx, n.authStatus, key)
@@ -75,8 +73,6 @@ func mockSendingServer(
 }
 
 func TestSession(t *testing.T) {
-	l, lc := expectNoLogs(t)
-	defer lc.Close()
 	ctx, err := krb5.NewContext()
 	if err != nil {
 		t.Fatal(err)
@@ -87,7 +83,7 @@ func TestSession(t *testing.T) {
 	clock := zephyrtest.NewMockClock()
 	client, server1, server2 := mockNetwork2()
 	session, err := NewSessionFull(client, serverConfigFull, krb5test.Credential(),
-		l, clock)
+		clock)
 	if err != nil {
 		t.Fatal(err)
 	}

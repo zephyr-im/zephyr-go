@@ -37,8 +37,6 @@ func testSendMessage(t *testing.T, l int, auth AuthStatus) {
 
 	msg := &Message{sampleNotice().Header, body}
 
-	logger, lc := expectNoLogs(t)
-	defer lc.Close()
 	ctx, err := krb5.NewContext()
 	if err != nil {
 		t.Error(err)
@@ -49,7 +47,7 @@ func testSendMessage(t *testing.T, l int, auth AuthStatus) {
 	clock := zephyrtest.NewMockClock()
 	client, server := mockNetwork1()
 	conn, err := NewConnectionFull(client, serverConfig,
-		krb5test.Credential(), logger, clock)
+		krb5test.Credential(), clock)
 	if err != nil {
 		t.Error(err)
 		return
@@ -117,13 +115,11 @@ func TestSendMessage(t *testing.T) {
 }
 
 func TestSendMessageLongHeader(t *testing.T) {
-	l, lc := expectNoLogs(t)
-	defer lc.Close()
 	clock := zephyrtest.NewMockClock()
 	client, server := mockNetwork1()
 	defer server.Close()
 	conn, err := NewConnectionFull(client, serverConfig,
-		krb5test.Credential(), l, clock)
+		krb5test.Credential(), clock)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -143,13 +139,11 @@ func TestSendMessageLongHeader(t *testing.T) {
 }
 
 func TestSendMessageNack(t *testing.T) {
-	l, lc := expectNoLogs(t)
-	defer lc.Close()
 	clock := zephyrtest.NewMockClock()
 	client, server := mockNetwork1()
 	defer server.Close()
 	conn, err := NewConnectionFull(client, serverConfig,
-		krb5test.Credential(), l, clock)
+		krb5test.Credential(), clock)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -175,14 +169,12 @@ func TestSendMessageNack(t *testing.T) {
 }
 
 func TestSendMessageSendError(t *testing.T) {
-	l, lc := expectNoLogs(t)
-	defer lc.Close()
 	clock := zephyrtest.NewMockClock()
 	readChan := make(chan zephyrtest.PacketRead)
 	close(readChan)
 	mock := zephyrtest.NewMockPacketConn(clientAddr, readChan)
 	conn, err := NewConnectionFull(mock, serverConfig,
-		krb5test.Credential(), l, clock)
+		krb5test.Credential(), clock)
 	if err != nil {
 		t.Fatal(err)
 	}

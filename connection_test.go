@@ -51,14 +51,11 @@ func mockServer(t *testing.T,
 	expectedAuthStatus AuthStatus,
 	clock *zephyrtest.MockClock,
 	numDrop int) {
-	l, lc := expectNoLogs(t)
-	defer lc.Close()
-
 	// Set some stuff up.
 	ctx, keytab := makeServerContextAndKeyTab(t)
 	defer ctx.Free()
 	defer keytab.Close()
-	for r := range ReadRawNotices(conn, l) {
+	for r := range ReadRawNotices(conn) {
 		authStatus, _, err := r.RawNotice.CheckAuthFromClient(
 			ctx, krb5test.Service(), keytab)
 		if err != nil {
@@ -98,8 +95,6 @@ func mockServer(t *testing.T,
 // Tests that a Connection forwards received packets out and doesn't
 // send SERVACKs out.
 func TestConnectionReceive(t *testing.T) {
-	l, lc := expectNoLogs(t)
-	defer lc.Close()
 	ctx, err := krb5.NewContext()
 	if err != nil {
 		t.Fatal(err)
@@ -119,7 +114,7 @@ func TestConnectionReceive(t *testing.T) {
 	close(readChan)
 	mock := zephyrtest.NewMockPacketConn(clientAddr, readChan)
 	clock := zephyrtest.NewMockClock()
-	conn, err := NewConnectionFull(mock, serverConfig, krb5test.Credential(), l, clock)
+	conn, err := NewConnectionFull(mock, serverConfig, krb5test.Credential(), clock)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -145,8 +140,6 @@ func TestConnectionReceive(t *testing.T) {
 }
 
 func TestConnectionSendNotice(t *testing.T) {
-	l, lc := expectNoLogs(t)
-	defer lc.Close()
 	ctx, err := krb5.NewContext()
 	if err != nil {
 		t.Fatal(err)
@@ -158,7 +151,7 @@ func TestConnectionSendNotice(t *testing.T) {
 	client, server := mockNetwork1()
 	defer server.Close()
 	conn, err := NewConnectionFull(client, serverConfig, krb5test.Credential(),
-		l, clock)
+		clock)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -180,8 +173,6 @@ func TestConnectionSendNotice(t *testing.T) {
 }
 
 func TestConnectionSendNoticeRetransmit(t *testing.T) {
-	l, lc := expectNoLogs(t)
-	defer lc.Close()
 	ctx, err := krb5.NewContext()
 	if err != nil {
 		t.Fatal(err)
@@ -193,7 +184,7 @@ func TestConnectionSendNoticeRetransmit(t *testing.T) {
 	client, server := mockNetwork1()
 	defer server.Close()
 	conn, err := NewConnectionFull(client, serverConfig, krb5test.Credential(),
-		l, clock)
+		clock)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -215,8 +206,6 @@ func TestConnectionSendNoticeRetransmit(t *testing.T) {
 }
 
 func TestConnectionSendNoticeTimeout(t *testing.T) {
-	l, lc := expectNoLogs(t)
-	defer lc.Close()
 	ctx, err := krb5.NewContext()
 	if err != nil {
 		t.Fatal(err)
@@ -228,7 +217,7 @@ func TestConnectionSendNoticeTimeout(t *testing.T) {
 	client, server := mockNetwork1()
 	defer server.Close()
 	conn, err := NewConnectionFull(client, serverConfig, krb5test.Credential(),
-		l, clock)
+		clock)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -244,14 +233,12 @@ func TestConnectionSendNoticeTimeout(t *testing.T) {
 }
 
 func TestConnectionSendNoticeUnauth(t *testing.T) {
-	l, lc := expectNoLogs(t)
-	defer lc.Close()
 	notice := sampleNotice()
 	clock := zephyrtest.NewMockClock()
 	client, server := mockNetwork1()
 	defer server.Close()
 	conn, err := NewConnectionFull(client, serverConfig, krb5test.Credential(),
-		l, clock)
+		clock)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -273,8 +260,6 @@ func TestConnectionSendNoticeUnauth(t *testing.T) {
 }
 
 func TestConnectionSendNoticeUnacked(t *testing.T) {
-	l, lc := expectNoLogs(t)
-	defer lc.Close()
 	ctx, err := krb5.NewContext()
 	if err != nil {
 		t.Fatal(err)
@@ -287,7 +272,7 @@ func TestConnectionSendNoticeUnacked(t *testing.T) {
 	client, server := mockNetwork1()
 	defer server.Close()
 	conn, err := NewConnectionFull(client, serverConfig, krb5test.Credential(),
-		l, clock)
+		clock)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -306,8 +291,6 @@ func TestConnectionSendNoticeUnacked(t *testing.T) {
 }
 
 func TestConnectionSendNoticeRoundRobin(t *testing.T) {
-	l, lc := expectNoLogs(t)
-	defer lc.Close()
 	ctx, err := krb5.NewContext()
 	if err != nil {
 		t.Fatal(err)
@@ -320,7 +303,7 @@ func TestConnectionSendNoticeRoundRobin(t *testing.T) {
 	defer server1.Close()
 	defer server2.Close()
 	conn, err := NewConnectionFull(client, serverConfigFull, krb5test.Credential(),
-		l, clock)
+		clock)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -363,8 +346,6 @@ func serverConfigNeedRefresh() ServerConfig {
 }
 
 func TestConnectionSendNoticeNeedRefresh(t *testing.T) {
-	l, lc := expectNoLogs(t)
-	defer lc.Close()
 	ctx, err := krb5.NewContext()
 	if err != nil {
 		t.Fatal(err)
@@ -377,7 +358,7 @@ func TestConnectionSendNoticeNeedRefresh(t *testing.T) {
 	defer server1.Close()
 	defer server2.Close()
 	conn, err := NewConnectionFull(client, serverConfigNeedRefresh(),
-		krb5test.Credential(), l, clock)
+		krb5test.Credential(), clock)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -406,15 +387,13 @@ func TestConnectionSendNoticeNeedRefresh(t *testing.T) {
 }
 
 func TestConnectionSendNoticeWriteFailure(t *testing.T) {
-	l, lc := expectNoLogs(t)
-	defer lc.Close()
 	notice := sampleNotice()
 	clock := zephyrtest.NewMockClock()
 	readChan := make(chan zephyrtest.PacketRead)
 	close(readChan)
 	mock := zephyrtest.NewMockPacketConn(clientAddr, readChan)
 	conn, err := NewConnectionFull(mock, serverConfig, krb5test.Credential(),
-		l, clock)
+		clock)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -435,8 +414,6 @@ func TestConnectionSendNoticeWriteFailure(t *testing.T) {
 }
 
 func TestConnectionSendGiantNotices(t *testing.T) {
-	l, lc := expectNoLogs(t)
-	defer lc.Close()
 	notice := sampleNotice()
 	notice.RawBody = make([]byte, 99999)
 
@@ -444,7 +421,7 @@ func TestConnectionSendGiantNotices(t *testing.T) {
 	client, server := mockNetwork1()
 	defer server.Close()
 	conn, err := NewConnectionFull(client, serverConfig, krb5test.Credential(),
-		l, clock)
+		clock)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -464,14 +441,12 @@ func (sc signalingConfig) ResolveServer() ([]*net.UDPAddr, error) {
 }
 
 func TestConnectionPeriodicRefresh(t *testing.T) {
-	l, lc := expectNoLogs(t)
-	defer lc.Close()
 	config := signalingConfig(make(chan int, 2))
 
 	clock := zephyrtest.NewMockClock()
 	client, server := mockNetwork1()
 	defer server.Close()
-	conn, err := NewConnectionFull(client, config, krb5test.Credential(), l, clock)
+	conn, err := NewConnectionFull(client, config, krb5test.Credential(), clock)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -509,8 +484,6 @@ func (f *failingConfig) ResolveServer() ([]*net.UDPAddr, error) {
 }
 
 func TestConnectionFailingConfigMidSend(t *testing.T) {
-	l, lc := expectNoLogs(t)
-	defer lc.Close()
 	ctx, err := krb5.NewContext()
 	if err != nil {
 		t.Fatal(err)
@@ -524,7 +497,7 @@ func TestConnectionFailingConfigMidSend(t *testing.T) {
 	defer server2.Close()
 	conn, err := NewConnectionFull(client,
 		newFailingConfig(1, serverConfigNeedRefresh()),
-		krb5test.Credential(), l, clock)
+		krb5test.Credential(), clock)
 	if err != nil {
 		t.Fatal(err)
 	}

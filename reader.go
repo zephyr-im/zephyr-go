@@ -36,15 +36,14 @@ type RawReaderResult struct {
 // ReadRawNotices decodes packets from a PacketConn into RawNotices
 // and returns a stream of them. Non-fatal errors are returned through
 // the stream. On a fatal error or EOF, the channel is closed.
-func ReadRawNotices(conn net.PacketConn, logger *log.Logger) <-chan RawReaderResult {
+func ReadRawNotices(conn net.PacketConn) <-chan RawReaderResult {
 	sink := make(chan RawReaderResult)
-	go readRawNoticeLoop(conn, logger, sink)
+	go readRawNoticeLoop(conn, sink)
 	return sink
 }
 
 func readRawNoticeLoop(
 	conn net.PacketConn,
-	logger *log.Logger,
 	sink chan<- RawReaderResult,
 ) {
 	defer close(sink)
@@ -55,7 +54,7 @@ func readRawNoticeLoop(
 		if err != nil {
 			// Send the error out to the consumer.
 			if err != io.EOF {
-				logPrintf(logger, "Error reading packet: %v\n", err)
+				log.Printf("Error reading packet: %v\n", err)
 			}
 			if ne, ok := err.(net.Error); ok && ne.Temporary() {
 				// Delay logic from net/http.Serve.
@@ -77,7 +76,7 @@ func readRawNoticeLoop(
 		// Copy the packet so we can reuse the buffer.
 		raw, err := DecodePacket(copyByteSlice(buf[0:n]))
 		if err != nil {
-			logPrintf(logger, "Error decoding notice: %v\n", err)
+			log.Printf("Error decoding notice: %v\n", err)
 			continue
 		}
 		sink <- RawReaderResult{raw, addr}
@@ -100,31 +99,29 @@ type NoticeReaderResult struct {
 func ReadNoticesFromServer(
 	conn net.PacketConn,
 	key *krb5.KeyBlock,
-	logger *log.Logger,
 ) <-chan NoticeReaderResult {
 	// TODO(davidben): Should this channel be buffered a little?
 	sink := make(chan NoticeReaderResult)
-	go readNoticeLoop(ReadRawNotices(conn, logger), key, logger, sink)
+	go readNoticeLoop(ReadRawNotices(conn), key, sink)
 	return sink
 }
 
 func readNoticeLoop(
 	rawReader <-chan RawReaderResult,
 	key *krb5.KeyBlock,
-	logger *log.Logger,
 	sink chan<- NoticeReaderResult,
 ) {
 	defer close(sink)
 	ctx, err := krb5.NewContext()
 	if err != nil {
-		logPrintf(logger, "Error creating krb5 context: %v", err)
+		log.Printf("Error creating krb5 context: %v", err)
 		return
 	}
 	defer ctx.Free()
 	for r := range rawReader {
 		notice, err := DecodeRawNotice(r.RawNotice)
 		if err != nil {
-			logPrintf(logger, "Error parsing notice: %v", err)
+			log.Printf("Error parsing notice: %v", err)
 			continue
 		}
 
@@ -135,7 +132,7 @@ func readNoticeLoop(
 		} else if key != nil {
 			authStatus, err = r.RawNotice.CheckAuthFromServer(ctx, key)
 			if err != nil {
-				logPrintf(logger, "Error authenticating notice: %v", err)
+				log.Printf("Error authenticating notice: %v", err)
 				authStatus = AuthFailed
 			}
 		}
