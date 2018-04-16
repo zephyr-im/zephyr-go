@@ -130,7 +130,7 @@ const (
 	multipartIndex // string
 	multiuidIndex  // 12-byte zascii
 	// Added in 2009; no version bump
-	senderSockaddrIndex // zcode
+	senderSockaddrIndex // zcode or zascii
 	charsetIndex        // zascii16 little-endian
 	// Other fields
 	numKnownFields
