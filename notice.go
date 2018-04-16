@@ -248,7 +248,13 @@ func DecodeRawNotice(r *RawNotice) (*Notice, error) {
 
 	var senderAddress net.IP
 	if len(r.HeaderFields) > senderSockaddrIndex {
-		ipBytes, err := DecodeZcode(r.HeaderFields[senderSockaddrIndex])
+		sockaddrField := r.HeaderFields[senderSockaddrIndex]
+		var ipBytes []byte
+		if len(sockaddrField) != 0 && sockaddrField[0] == 'Z' {
+			ipBytes, err = DecodeZcode(sockaddrField)
+		} else {
+			ipBytes, err = DecodeZAscii(sockaddrField)
+		}
 		if err != nil {
 			return nil, err
 		}
