@@ -120,8 +120,16 @@ func TestDecodeNotice(t *testing.T) {
 	}
 
 	// Value in sender address takes precedence over UID value.
-	raw.HeaderFields[17] = []byte("Z\x08\x08\x08\x08")
-	expected.SenderAddress = net.ParseIP("8.8.8.8").To4()
+	raw.HeaderFields[17] = []byte("Z\xDE\xAD\xBE\xEF")
+	expected.SenderAddress = net.ParseIP("222.173.190.239").To4()
+	if notice, err := DecodeRawNotice(raw); err != nil {
+		t.Errorf("DecodeRawNotice(%v) failed: %v", raw, err)
+	} else {
+		expectNoticesEqual(t, notice, expected)
+	}
+
+	raw.HeaderFields[17] = []byte("0xDEADBEEF")
+	expected.SenderAddress = net.ParseIP("222.173.190.239").To4()
 	if notice, err := DecodeRawNotice(raw); err != nil {
 		t.Errorf("DecodeRawNotice(%v) failed: %v", raw, err)
 	} else {
